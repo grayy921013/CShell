@@ -19,21 +19,21 @@ CmdProfile cmdProfileTable[] = {
 	CMD_TABLE_ROW(cd),
 	CMD_TABLE_ROW(exit),
 	CMD_TABLE_ROW(fg),
-	CMD_TABLE_ROW(job),
+	CMD_TABLE_ROW(jobs),
 	{ NULL, NULL }	// Marks end of table.
 };
 
 /*	Call built-in cmds or create process for executables,
 *	with further args supplied from cmdlArgv.
 *	Return value indicates errors. */
-int handleCmdl(int* cmdlArgc, char ***cmdlArgv, int processCount) {
+Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int processCount) {
 	/** Returns on reading empty cmd. **/
 	/** Searches for built-in cmd strings matched **/
 	if (processCount == 1) {
 		int i = 0;
 		if (cmdlArgc[0] == 0) {
 			DEBUG(printf("#DEBUG# Cmd is empty string.\n"););
-			return 0;
+			return jobs;
 		}
 		while (cmdProfileTable[i].name != NULL &&
 			strcmp((*cmdlArgv)[0], cmdProfileTable[i].name) != 0)
@@ -42,37 +42,37 @@ int handleCmdl(int* cmdlArgc, char ***cmdlArgv, int processCount) {
 			"[-1] means none matched.\n", i < 4 ? i : -1););
 			if (cmdProfileTable[i].name != NULL) {
 				/** Call built-in cmd **/
-				if (cmdProfileTable[i].method(*cmdlArgc, *cmdlArgv) < 0) {
+				if ((jobs = cmdProfileTable[i].method(*cmdlArgc, *cmdlArgv, jobs)) < 0) {
 					fprintf(stderr, "Error in executing built-in cmd.\n");
-					return -1;
+					return jobs;
 				}
 			} else {
-				if (execProg(cmdlArgv,processCount) < 0) {
+				if (((jobs = execProg(jobs, cmdl, cmdlArgv,processCount))) < 0) {
 					fprintf(stderr, "Error in executing programme.\n");
-					return -2;
+					return jobs;
 				}
 			}
 		}
 		else {
 			/** Execute other programme **/
-			if (execProg(cmdlArgv,processCount) < 0) {
+			if (((jobs = execProg(jobs, cmdl, cmdlArgv,processCount))) < 0) {
 				fprintf(stderr, "Error in executing programme.\n");
-				return -2;
+				return jobs;
 			}
 		}
-		return 0;
+		return jobs;
 	}
 
 	/*	Create process to execute programme with args, specified in cmdlArgv.
 	*	Returns when child process stops. */
-	int execProg(char ***cmdlArgv, int processCount) {
+	Jobs* execProg(Jobs* jobs, char* cmdl, char ***cmdlArgv, int processCount) {
 		setenv("PATH", "/bin:/usr/bin:.", 1);
-		int childStatus;
 		int pid;
-		int childPid[processCount];
+		pid_t* childPid;
 		int p[2];
 		int fd_in = 0;
 		int i = 0;
+		childPid = malloc(sizeof(pid_t) * (processCount + 1));
 		while (i<processCount) {
 			DEBUG(printf("#DEBUG# Creating process for %s.\n", cmdlArgv[i][0]););
 			pipe(p);
@@ -115,13 +115,7 @@ int handleCmdl(int* cmdlArgc, char ***cmdlArgv, int processCount) {
 				exit(0);
 			}
 		}
-		for(i = 0; i < processCount; i++) {
-			waitpid(childPid[i], &childStatus, WUNTRACED);
-			DEBUG(
-				if (WIFSIGNALED(childStatus))
-				printf("#DEBUG# Child was terminated by signal %d.\n",
-				WTERMSIG(childStatus));
-			);
-		}
-		return 0;
+		childPid[i] = 0;
+		jobs = waitChildren(childPid, jobs, cmdl);
+		return jobs;
 	}

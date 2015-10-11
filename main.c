@@ -1,6 +1,6 @@
 /*
- *	Author: Ivan Lin, 1155017469
- *	Project: CSCI3150 Shell Phase 1
+ *	Author: Ivan Lin, 1155017469 Vincent Zhou, 1155014433
+ *	Project: CSCI3150 Shell Phase 2
  *	Date: Oct 2015
  */
 
@@ -14,9 +14,11 @@ int main(void) {
 	DEBUG(printf("#DEBUG# Debug mode.\n"););
 	/** Declare variables **/
 	char cmdl[INPUT_MAX];
+	char tempCmdl[INPUT_MAX];
 	char ***cmdlArgv;
 	int **cmdlArgc ;
 	int processCount;
+	Jobs* jobs = NULL;
 	/** Set signal handlers to ignore **/
 	signal(SIGINT, SIG_IGN);
 	signal(SIGQUIT, SIG_IGN);
@@ -26,8 +28,9 @@ int main(void) {
 	/** Main loop **/
 	while (1) {
 		cmdLinePrompt(cmdl);
+		strcpy(tempCmdl, cmdl);
 		cmdlArgv = tokenizeCmdl(cmdl, cmdlArgc, &processCount);
-		handleCmdl(*cmdlArgc, cmdlArgv, processCount);
+		jobs = handleCmdl(jobs, tempCmdl, *cmdlArgc, cmdlArgv, processCount);
 		freeCmdlArgv(cmdlArgv, processCount);
 	}
 	return 0;

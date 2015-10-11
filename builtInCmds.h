@@ -1,8 +1,19 @@
-int cdMain(int cmdlArgc, char **cmdlArgv);
+#define INPUT_MAX 255	// Max cmd line input length.
+typedef struct jobs {
+char cmd[INPUT_MAX];
+pid_t *pidList;
+struct jobs *next;
+} Jobs;
+Jobs* cdMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs);
 
-int exitMain(int cmdlArgc, char **cmdlArgv);
+Jobs* exitMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs);
 
-int fgMain(int cmdlArgc, char **cmdlArgv);
+Jobs* fgMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs);
 
-int jobMain(int cmdlArgc, char **cmdlArgv);
+Jobs* jobsMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs);
 
+Jobs* waitChildren(pid_t* children, Jobs* jobs, char* cmdl);
+
+Jobs* wakeJob(Jobs* jobs, int index);
+
+void wakeChildren(pid_t* children);
