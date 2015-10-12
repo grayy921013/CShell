@@ -25,7 +25,6 @@ int main(void) {
 	signal(SIGTERM, SIG_IGN);
 	signal(SIGTSTP, SIG_IGN);
 	signal(SIGTTOU, SIG_IGN);
-	signal(SIGCHLD, SIG_IGN);
 	cmdlArgc = malloc(sizeof(int*));
 	/** Main loop **/
 	while (1) {

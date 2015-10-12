@@ -6,6 +6,7 @@
 #include <sys/wait.h>	//waitpid
 #include <errno.h>	// errno
 #include <signal.h>	// signal
+#include <glob.h>
 #include "invoker.h"
 #include "debug.h"
 
@@ -71,7 +72,7 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 		pid_t* childPid;
 		int p[2];
 		int fd_in = 0;
-		int i = 0;
+		int i = 0,j;
 		childPid = calloc((processCount + 1), sizeof(pid_t));
 		while (i<processCount) {
 			DEBUG(printf("#DEBUG# Creating process for %s.\n", cmdlArgv[i][0]););
@@ -105,7 +106,6 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 				signal(SIGTERM, SIG_DFL);
 				signal(SIGTSTP, SIG_DFL);
 				signal(SIGTTOU, SIG_DFL);
-				signal(SIGCHLD, SIG_DFL);
 				if (fd_in != 0) {
 					dup2(fd_in, 0);
 				}
@@ -113,6 +113,32 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 					dup2(p[1], 1);
 				}
 				close(p[0]);
+				//wildcard handling
+				if (cmdlArgv[i][1] != NULL) {
+					glob_t results;
+					printf("%s\n",cmdlArgv[i][1]);
+					glob(cmdlArgv[i][1], GLOB_NOCHECK, NULL, &results);
+					j = 2;
+					while (cmdlArgv[i][j] != NULL) {
+						printf("%s\n",cmdlArgv[i][j]);
+						glob(cmdlArgv[i][j], GLOB_NOCHECK | GLOB_APPEND, NULL, &results);
+						j++;
+					}
+					DEBUG(printf("match %zu\n", results.gl_pathc);
+					);
+						cmdlArgv[i] = realloc(cmdlArgv[i], sizeof(char *) * (results.gl_pathc + 2));
+						for(j = 0;j < results.gl_pathc;j++) {
+							cmdlArgv[i][j+1] = malloc(sizeof(char) * strlen(results.gl_pathv[j]));
+							strcpy(cmdlArgv[i][j+1], results.gl_pathv[j]);
+						}
+						cmdlArgv[i][j+1] = NULL;
+					globfree(&results);
+				}
+				DEBUG(
+					for (j = 0; cmdlArgv[i][j] != NULL; j++)
+					printf("#DEBUG# cmdlArgv[%d]=%s=END\n", j, cmdlArgv[i][j]);
+					printf("#DEBUG# cmdlArgv[%d]=%s=END\n", j, cmdlArgv[i][j]);
+				);
 				/** Execute programme **/
 				if (execvp(cmdlArgv[i][0], cmdlArgv[i]) == -1) {
 					if (errno == ENOENT)
