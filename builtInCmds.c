@@ -116,7 +116,8 @@ Jobs* wakeJob(Jobs* jobs, int index) {
 Jobs* waitChildren(pid_t* childPid, Jobs* jobs, char* cmdl) {
 	int childStatus;
 	int i;
-	fflush(stdout);
+	tcsetpgrp(STDIN_FILENO, childPid[0]);
+	tcsetpgrp(STDOUT_FILENO, childPid[0]);
 	for(i = 0; childPid[i] != 0; i++) {
 		DEBUG(printf("waiting for %d\n", childPid[i]););
 		waitpid(childPid[i], &childStatus, WUNTRACED);
@@ -148,6 +149,8 @@ Jobs* waitChildren(pid_t* childPid, Jobs* jobs, char* cmdl) {
 			WTERMSIG(childStatus));
 		);
 	}
+	tcsetpgrp(STDIN_FILENO, getpid());
+	tcsetpgrp(STDOUT_FILENO, getpid());
 	return jobs;
 }
 

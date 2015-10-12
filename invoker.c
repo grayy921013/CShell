@@ -72,7 +72,7 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 		int p[2];
 		int fd_in = 0;
 		int i = 0;
-		childPid = malloc(sizeof(pid_t) * (processCount + 1));
+		childPid = calloc((processCount + 1), sizeof(pid_t));
 		while (i<processCount) {
 			DEBUG(printf("#DEBUG# Creating process for %s.\n", cmdlArgv[i][0]););
 			pipe(p);
@@ -83,6 +83,7 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 					getchar();
 				);
 				childPid[i] = pid;
+				setpgid(pid, childPid[0]);
 				close(p[1]);
 				fd_in = p[0];
 				i++;
@@ -94,10 +95,17 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 			} else {
 				DEBUG(printf("#DEBUG# Child executing %s.\n", cmdlArgv[i][0]););
 				/** Set signal handlers to default **/
+				if (childPid[0] == 0) {
+					childPid[0] = getpid();
+				}
+				setpgid(0, childPid[0]);
+
 				signal(SIGINT, SIG_DFL);
 				signal(SIGQUIT, SIG_DFL);
 				signal(SIGTERM, SIG_DFL);
 				signal(SIGTSTP, SIG_DFL);
+				signal(SIGTTOU, SIG_DFL);
+				signal(SIGCHLD, SIG_DFL);
 				if (fd_in != 0) {
 					dup2(fd_in, 0);
 				}
@@ -115,7 +123,6 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 				exit(0);
 			}
 		}
-		childPid[i] = 0;
 		jobs = waitChildren(childPid, jobs, cmdl);
 		return jobs;
 	}
