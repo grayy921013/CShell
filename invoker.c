@@ -70,13 +70,17 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 		setenv("PATH", "/bin:/usr/bin:.", 1);
 		int pid;
 		pid_t* childPid;
+		//int **p = NULL;
 		int p[2];
+		int oldP[2];
 		int fd_in = 0;
 		int i = 0,j;
 		childPid = calloc((processCount + 1), sizeof(pid_t));
 		while (i<processCount) {
 			DEBUG(printf("#DEBUG# Creating process for %s.\n", cmdlArgv[i][0]););
-			pipe(p);
+			if (i < processCount - 1) {
+				pipe(p);
+			}
 			if ((pid = fork())) {
 				DEBUG_ZOMBIE(
 					sleep(1);
@@ -85,8 +89,14 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 				);
 				childPid[i] = pid;
 				setpgid(pid, childPid[0]);
-				close(p[1]);
-				fd_in = p[0];
+				if (i != processCount - 1){
+					close(p[1]);
+				}
+				if (i != 0) {
+					close(oldP[0]);
+				}
+				oldP[0] = p[0];
+				oldP[1] = p[1];
 				i++;
 				DEBUG_ZOMBIE(
 					printf("#DEBUG# Child stopped and parent woke. "
@@ -99,20 +109,20 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 				if (childPid[0] == 0) {
 					childPid[0] = getpid();
 				}
-				setpgid(0, childPid[0]);
-
 				signal(SIGINT, SIG_DFL);
 				signal(SIGQUIT, SIG_DFL);
 				signal(SIGTERM, SIG_DFL);
 				signal(SIGTSTP, SIG_DFL);
 				signal(SIGTTOU, SIG_DFL);
-				if (fd_in != 0) {
-					dup2(fd_in, 0);
-				}
-				if (i < processCount -1) {
+				setpgid(0, childPid[0]);
+				if(i != processCount - 1) {
+					close(p[0]);
 					dup2(p[1], 1);
 				}
-				close(p[0]);
+				if(i != 0) {
+					close(oldP[1]);
+					dup2(oldP[0], 0);
+				}
 				//wildcard handling
 				if (cmdlArgv[i][1] != NULL) {
 					glob_t results;
@@ -125,30 +135,30 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 						j++;
 					}
 					DEBUG(printf("match %zu\n", results.gl_pathc);
-					);
-						cmdlArgv[i] = realloc(cmdlArgv[i], sizeof(char *) * (results.gl_pathc + 2));
-						for(j = 0;j < results.gl_pathc;j++) {
-							cmdlArgv[i][j+1] = malloc(sizeof(char) * strlen(results.gl_pathv[j]));
-							strcpy(cmdlArgv[i][j+1], results.gl_pathv[j]);
-						}
-						cmdlArgv[i][j+1] = NULL;
-					globfree(&results);
-				}
-				DEBUG(
-					for (j = 0; cmdlArgv[i][j] != NULL; j++)
-					printf("#DEBUG# cmdlArgv[%d]=%s=END\n", j, cmdlArgv[i][j]);
-					printf("#DEBUG# cmdlArgv[%d]=%s=END\n", j, cmdlArgv[i][j]);
 				);
-				/** Execute programme **/
-				if (execvp(cmdlArgv[i][0], cmdlArgv[i]) == -1) {
-					if (errno == ENOENT)
-					printf("%s:  command not found\n", cmdlArgv[i][0]);
-					else
-					printf("%s:  unknown error\n", cmdlArgv[i][0]);
+				cmdlArgv[i] = realloc(cmdlArgv[i], sizeof(char *) * (results.gl_pathc + 2));
+				for(j = 0;j < results.gl_pathc;j++) {
+					cmdlArgv[i][j+1] = malloc(sizeof(char) * strlen(results.gl_pathv[j]));
+					strcpy(cmdlArgv[i][j+1], results.gl_pathv[j]);
 				}
-				exit(0);
+				cmdlArgv[i][j+1] = NULL;
+				globfree(&results);
 			}
+			DEBUG(
+				for (j = 0; cmdlArgv[i][j] != NULL; j++)
+				printf("#DEBUG# cmdlArgv[%d]=%s=END\n", j, cmdlArgv[i][j]);
+				printf("#DEBUG# cmdlArgv[%d]=%s=END\n", j, cmdlArgv[i][j]);
+			);
+			/** Execute programme **/
+			if (execvp(cmdlArgv[i][0], cmdlArgv[i]) == -1) {
+				if (errno == ENOENT)
+				printf("%s:  command not found\n", cmdlArgv[i][0]);
+				else
+				printf("%s:  unknown error\n", cmdlArgv[i][0]);
+			}
+			exit(0);
 		}
-		jobs = waitChildren(childPid, jobs, cmdl);
-		return jobs;
 	}
+	jobs = waitChildren(childPid, jobs, cmdl);
+	return jobs;
+}
