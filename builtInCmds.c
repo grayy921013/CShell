@@ -29,7 +29,12 @@ Jobs* exitMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs) {
 		printf("%s:  wrong number of arguments\n", cmdlArgv[0]);
 		return jobs;
 	}
-	exit(0);
+	if (jobs != NULL) {
+		printf("There is at least one suspended job\n");
+		return jobs;
+	} else {
+		exit(0);
+	}
 }
 
 Jobs* fgMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs) {
@@ -119,7 +124,7 @@ Jobs* waitChildren(pid_t* childPid, Jobs* jobs, char* cmdl) {
 	int i;
 	tcsetpgrp(STDIN_FILENO, childPid[0]);
 	tcsetpgrp(STDOUT_FILENO, childPid[0]);
-	while (childPid[childCount] != NULL) {
+	while (childPid[childCount] != 0) {
 		childCount++;
 	}
 	for(i = 0; childPid[i] != 0; i++) {

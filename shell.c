@@ -54,7 +54,7 @@ void cmdLinePrompt(char *const cmdl) {
  *	and should be freed using freeCmdlArgv() when not needed.
  *	The number of tokens is stored in *cmdlArgc. */
 char ***tokenizeCmdl(char *const cmdl, int **const cmdlArgc, int *const processCount) {
-	char ***cmdlArgv, *savePtr;	// savePtr is for strtok_r.
+	char ***cmdlArgv;
 	/** Count num of tokens separated by ' ' **/
 	int i = 0, j = 0, cmdlLen = strlen(cmdl);
 	int processNow = 0;

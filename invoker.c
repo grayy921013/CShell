@@ -73,7 +73,6 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 		//int **p = NULL;
 		int p[2];
 		int oldP[2];
-		int fd_in = 0;
 		int i = 0,j;
 		childPid = calloc((processCount + 1), sizeof(pid_t));
 		while (i<processCount) {
@@ -152,9 +151,9 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 			/** Execute programme **/
 			if (execvp(cmdlArgv[i][0], cmdlArgv[i]) == -1) {
 				if (errno == ENOENT)
-				printf("%s:  command not found\n", cmdlArgv[i][0]);
+				fprintf(stderr, "%s:  command not found\n", cmdlArgv[i][0]);
 				else
-				printf("%s:  unknown error\n", cmdlArgv[i][0]);
+				fprintf(stderr, "%s:  unknown error\n", cmdlArgv[i][0]);
 			}
 			exit(0);
 		}
