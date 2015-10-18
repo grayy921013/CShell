@@ -125,11 +125,9 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 				//wildcard handling
 				if (cmdlArgv[i][1] != NULL) {
 					glob_t results;
-					printf("%s\n",cmdlArgv[i][1]);
 					glob(cmdlArgv[i][1], GLOB_NOCHECK, NULL, &results);
 					j = 2;
 					while (cmdlArgv[i][j] != NULL) {
-						printf("%s\n",cmdlArgv[i][j]);
 						glob(cmdlArgv[i][j], GLOB_NOCHECK | GLOB_APPEND, NULL, &results);
 						j++;
 					}
