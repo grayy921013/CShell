@@ -12,7 +12,7 @@ Jobs* fgMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs);
 
 Jobs* jobsMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs);
 
-Jobs* waitChildren(pid_t* children, Jobs* jobs, char* cmdl);
+Jobs* waitChildren(pid_t* children, Jobs* jobs);
 
 Jobs* wakeJob(Jobs* jobs, int index);
 

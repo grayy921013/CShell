@@ -156,6 +156,21 @@ Jobs* handleCmdl(Jobs* jobs, char* cmdl, int* cmdlArgc, char ***cmdlArgv, int pr
 			exit(0);
 		}
 	}
-	jobs = waitChildren(childPid, jobs, cmdl);
+			Jobs* newNode = malloc(sizeof(Jobs));
+			strcpy(newNode->cmd, cmdl);
+			newNode->pidList = childPid;
+			newNode->next = NULL;
+			if (jobs == NULL) {
+				DEBUG(printf("first node added\n"););
+				jobs = newNode;
+			} else {
+				Jobs* temp = jobs;
+				while (temp -> next) {
+					temp = temp->next;
+				}
+				temp->next = newNode;
+			}
+
+	jobs = waitChildren(childPid, jobs);
 	return jobs;
 }

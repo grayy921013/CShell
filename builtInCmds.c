@@ -72,53 +72,22 @@ Jobs* jobsMain(int cmdlArgc, char **cmdlArgv, Jobs* jobs) {
 }
 Jobs* wakeJob(Jobs* jobs, int index) {
 	int i = 0;
-	char cmd[INPUT_MAX];
 	Jobs* temp;
-	pid_t* pidList;
-	if (index == 1) {
-		if (jobs == NULL) {
-			printf("fg: no such job\n");
-		} else {
-			temp = jobs->next;
-			wakeChildren(jobs->pidList);
-			strcpy(cmd, jobs->cmd);
-			printf("Job wake up: %s\n", cmd);
-			pidList = jobs->pidList;
-			free(jobs);
-			//jobs = temp;
-			jobs = waitChildren(pidList, temp, cmd);
-		}
+	temp = jobs;
+	for (;i < index-1;i++) {
+		temp = temp->next;
+	}
+	if (temp == NULL) {
+		printf("fg: no such job\n");
+		return jobs;
 	} else {
-		temp = jobs;
-		if (temp == NULL) {
-			printf("fg: no such job\n");
-			return jobs;
-		}
-		for(i = 0;temp !=NULL && i != index-2;i++) {
-			if (temp->next != NULL) {
-				temp=temp->next;
-			} else {
-				printf("fg: no such job\n");
-				return jobs;
-			}
-		}
-		if(temp->next != NULL) {
-			Jobs* delPtr = temp->next;
-			temp->next = temp->next->next;
-			wakeChildren(delPtr->pidList);
-			strcpy(cmd, delPtr->cmd);
-			printf("Job wake up: %s\n", cmd);
-			pidList = delPtr->pidList;
-			free(delPtr);
-			jobs = waitChildren(pidList, jobs, cmd);
-		} else {
-			printf("fg: no such job\n");
-			return jobs;
-		}
+		printf("Job wake up: %s\n", temp->cmd);
+		wakeChildren(temp->pidList);
+		jobs = waitChildren(temp->pidList, jobs);
 	}
 	return jobs;
 }
-Jobs* waitChildren(pid_t* childPid, Jobs* jobs, char* cmdl) {
+Jobs* waitChildren(pid_t* childPid, Jobs* jobs) {
 	int childStatus;
 	int childCount = 0;
 	int i;
@@ -131,34 +100,36 @@ Jobs* waitChildren(pid_t* childPid, Jobs* jobs, char* cmdl) {
 	for(i = 0; childPid[i] != 0; i++) {
 		DEBUG(printf("waiting for %d\n", childPid[i]););
 		waitpid(childPid[i], &childStatus, WUNTRACED);
-		if (WIFSTOPPED(childStatus)) {
-			if (i == 0) {
-				Jobs* newNode = malloc(sizeof(Jobs));
-				strcpy(newNode->cmd, cmdl);
-				newNode->pidList = (pid_t*)malloc(sizeof(pid_t)*childCount);
-				memcpy(newNode->pidList, childPid, childCount * sizeof(pid_t));
-				newNode->next = NULL;
-				if (jobs == NULL) {
-					DEBUG(printf("first node added\n"););
-					jobs = newNode;
-				} else {
-					Jobs* temp = jobs;
-					while (temp -> next) {
-						temp = temp->next;
-					}
-					temp->next = newNode;
-				}
-			}
-		}
 		DEBUG(
 			if (WIFSIGNALED(childStatus))
 			printf("#DEBUG# Child was terminated by signal %d.\n",
 			WTERMSIG(childStatus));
 		);
 	}
+	if (!WIFSTOPPED(childStatus)) {
+		//delete the node
+		Jobs* temp;
+		if (jobs->pidList[0] == childPid[0]) {
+			//first node
+			temp = jobs->next;
+			free(jobs->pidList);
+			free(jobs);
+			jobs = temp;
+		} else {
+			//not first node
+			Jobs* delPtr;
+			temp = jobs;
+			while(temp->next->pidList[0] != childPid[0]) {
+				temp = temp->next;
+			}
+			delPtr = temp->next;
+			temp->next = temp->next->next;
+			free(delPtr->pidList);
+			free(delPtr);
+		}
+	}
 	tcsetpgrp(STDIN_FILENO, getpid());
 	tcsetpgrp(STDOUT_FILENO, getpid());
-	free(childPid);
 	return jobs;
 }
 
