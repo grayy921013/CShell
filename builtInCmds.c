@@ -125,6 +125,7 @@ Jobs* waitChildren(pid_t* childPid, Jobs* jobs, char* cmdl) {
 	tcsetpgrp(STDIN_FILENO, childPid[0]);
 	tcsetpgrp(STDOUT_FILENO, childPid[0]);
 	while (childPid[childCount] != 0) {
+		DEBUG(printf("childpid: %d\n", childPid[childCount]););
 		childCount++;
 	}
 	for(i = 0; childPid[i] != 0; i++) {
@@ -135,7 +136,7 @@ Jobs* waitChildren(pid_t* childPid, Jobs* jobs, char* cmdl) {
 				Jobs* newNode = malloc(sizeof(Jobs));
 				strcpy(newNode->cmd, cmdl);
 				newNode->pidList = (pid_t*)malloc(sizeof(pid_t)*childCount);
-				memcpy(newNode->pidList, childPid, childCount);
+				memcpy(newNode->pidList, childPid, childCount * sizeof(pid_t));
 				newNode->next = NULL;
 				if (jobs == NULL) {
 					DEBUG(printf("first node added\n"););
